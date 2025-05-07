@@ -75,7 +75,7 @@ The `requirements.txt` file includes:
     ```bash
     python app.py
     ```
-2. Access the app at [http://127.0.0.1:5000](http://127.0.0.1:5000).
+2. Access the app at [https://medisum-zckdd6pvfuwuybdcbjg4yn.streamlit.app/](https://medisum-zckdd6pvfuwuybdcbjg4yn.streamlit.app/).
 3. Upload a `.txt` medical report and view the diagnosis.
 
 ---
