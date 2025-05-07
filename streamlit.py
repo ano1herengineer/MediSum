@@ -9,61 +9,77 @@ RESULT_PATH = 'results/final_diagnosis.txt'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(os.path.dirname(RESULT_PATH), exist_ok=True)
 
+# Set the Groq API key as an environment variable
+os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
+
 # Streamlit App
 st.title("MediScan AI – Smart Medical Report Analyzer")
-st.write("Upload a medical report in `.txt` format to analyze and get a diagnosis.")
+st.write("Upload a medical report in `.txt` format or directly input text to analyze and get a diagnosis.")
 
-# File Upload
-uploaded_file = st.file_uploader("Upload your medical report", type=["txt"])
+# Option to choose input method
+input_method = st.radio(
+    "Choose how to provide the medical report:",
+    ("Upload a .txt file", "Enter text directly")
+)
 
-if uploaded_file:
-    # Save uploaded file
-    filepath = os.path.join(UPLOAD_FOLDER, uploaded_file.name)
-    with open(filepath, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    
-    st.success(f"File uploaded successfully: {uploaded_file.name}")
+# Initialize a variable to hold the medical report content
+medical_report = None
 
-    # Read the medical report
-    with open(filepath, "r") as file:
-        medical_report = file.read()
+if input_method == "Upload a .txt file":
+    # File uploader for .txt files
+    uploaded_file = st.file_uploader("Upload your medical report", type=["txt"])
+    if uploaded_file:
+        # Save uploaded file
+        filepath = os.path.join(UPLOAD_FOLDER, uploaded_file.name)
+        with open(filepath, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        
+        st.success(f"File uploaded successfully: {uploaded_file.name}")
 
-    # Display the uploaded report
-    st.subheader("Uploaded Medical Report")
-    st.text_area("Medical Report Content", medical_report, height=300)
+        # Read the medical report
+        with open(filepath, "r") as file:
+            medical_report = file.read()
 
-    # Analyze the report
-    if st.button("Analyze Report"):
-        st.info("Analyzing the report. Please wait...")
+        # Display the uploaded report
+        st.subheader("Uploaded Medical Report")
+        st.text_area("Medical Report Content", medical_report, height=300)
 
-        # Run individual specialists
-        agents = {
-            "Cardiologist": Cardiologist(medical_report),
-            "Psychologist": Psychologist(medical_report),
-            "Pulmonologist": Pulmonologist(medical_report)
-        }
+elif input_method == "Enter text directly":
+    # Text area for direct text input
+    medical_report = st.text_area("Enter the medical report text here:", height=300)
 
-        responses = {}
-        with ThreadPoolExecutor() as executor:
-            futures = {executor.submit(agent.run): name for name, agent in agents.items()}
-            for future in as_completed(futures):
-                agent_name = futures[future]
-                responses[agent_name] = future.result()
+# Analyze the report if content is available
+if medical_report and st.button("Analyze Report"):
+    st.info("Analyzing the report. Please wait...")
 
-        # Run multidisciplinary agent
-        team_agent = MultidisciplinaryTeam(
-            cardiologist_report=responses["Cardiologist"],
-            psychologist_report=responses["Psychologist"],
-            pulmonologist_report=responses["Pulmonologist"]
-        )
-        final_diagnosis = team_agent.run()
+    # Run individual specialists
+    agents = {
+        "Cardiologist": Cardiologist(medical_report),
+        "Psychologist": Psychologist(medical_report),
+        "Pulmonologist": Pulmonologist(medical_report)
+    }
 
-        # Save the diagnosis
-        final_diagnosis_text = "### Final Diagnosis:\n\n" + final_diagnosis
-        with open(RESULT_PATH, "w") as result_file:
-            result_file.write(final_diagnosis_text)
+    responses = {}
+    with ThreadPoolExecutor() as executor:
+        futures = {executor.submit(agent.run): name for name, agent in agents.items()}
+        for future in as_completed(futures):
+            agent_name = futures[future]
+            responses[agent_name] = future.result()
 
-        # Display the final diagnosis
-        st.subheader("Final Diagnosis")
-        st.text_area("Diagnosis", final_diagnosis_text, height=300)
-        st.success("Analysis complete. Final diagnosis displayed above.")
+    # Run multidisciplinary agent
+    team_agent = MultidisciplinaryTeam(
+        cardiologist_report=responses["Cardiologist"],
+        psychologist_report=responses["Psychologist"],
+        pulmonologist_report=responses["Pulmonologist"]
+    )
+    final_diagnosis = team_agent.run()
+
+    # Save the diagnosis
+    final_diagnosis_text = "### Final Diagnosis:\n\n" + final_diagnosis
+    with open(RESULT_PATH, "w") as result_file:
+        result_file.write(final_diagnosis_text)
+
+    # Display the final diagnosis
+    st.subheader("Final Diagnosis")
+    st.text_area("Diagnosis", final_diagnosis_text, height=300)
+    st.success("Analysis complete. Final diagnosis displayed above.")

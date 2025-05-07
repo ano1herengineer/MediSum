@@ -9,8 +9,13 @@ class Agent:
         self.extra_info = extra_info
         self.prompt_template = self.create_prompt_template()
 
+        # Retrieve the API key from environment variables
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise ValueError("Groq API key not found. Please set the GROQ_API_KEY environment variable.")
+
         self.model = ChatGroq(
-            api_key = "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",
+            api_key = api_key,
             model = "llama-3.3-70b-versatile",
             temperature=0.0
         )
