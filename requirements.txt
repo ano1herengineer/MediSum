@@ -1,0 +1,9 @@
+streamlit
+flask
+langchain-core
+langchain-groq
+concurrent.futures
+jinja2
+numpy
+pandas
+requests
